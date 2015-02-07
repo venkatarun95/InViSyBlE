@@ -1,0 +1,1 @@
+Place images of objects you want to be able to recognise in this folder. They will be reffered to by their filename by the program.
