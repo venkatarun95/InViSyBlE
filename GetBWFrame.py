@@ -2,10 +2,10 @@ import cv2
 import numpy as np
 
 from Computation import Computation
-from GetFrame import GetFrame
+from GetGoodFrame import GetGoodFrame
 
 class GetBWFrame(Computation):
-	dependancies = [GetFrame]
+	dependancies = [GetGoodFrame]
 	def run(self, params):
 		"""override: Convert current frame to black and white. Given argument contains (frame, frameId). Warning: Currently assumes input is BGR"""
 		params = params[0]
