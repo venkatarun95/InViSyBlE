@@ -22,16 +22,17 @@ class GetGoodFrame(Computation):
 	"""The current amount of change that has gone unprocessed"""
 	curChangeAmount = 0
 	
-	"""If set to True, frames that are 'too blurry' will be ignored"""
+	"""If set to True, the least 'blurry' frame will be used"""
 	analyseBlurriness = True
-	"""Avg. edge strength (moving exponential average). Used to decide if frame is too blurry"""
-	avgEdgeStrength = 0
-	"""If current edge strength is less than this fraction of the moving average, it will be considered too blurry for processing"""
-	blurrinessThreshold = 0.8
+	"""The least blurry frame as measured using average edge strength"""
+	bestFrame = None
+	"""Highest average edge strength in current lot"""
+	bestBlurrinessScore = -1 #-ve infinity
+	
 
 	def run(self, params):
 		"""override: If there has been sufficient change in scene and the frame is not blurry return the frame. Else returns None"""
-		print "Considering frame 932864", self.curChangeAmount, self.avgEdgeStrength
+		print "Considering frame 932864", self.curChangeAmount, self.bestBlurrinessScore
 		frame = ndimage.gaussian_filter(params[0][0], sigma=5)
 		if self.prevFrame == None:
 			self.prevFrame = frame
@@ -40,21 +41,19 @@ class GetGoodFrame(Computation):
 		meanDiff = np.mean(frame.flatten() - self.prevFrame.flatten())
 		self.prevFrame = frame
 		self.curChangeAmount += meanDiff
+
+		if self.analyseBlurriness:
+			edgeStrength = np.mean(ndimage.sobel(frame, axis=0, mode='constant'))
+			edgeStrength += np.mean(ndimage.sobel(frame, axis=1, mode='constant'))
+			
+			if edgeStrength >= self.bestBlurrinessScore:
+				self.bestBlurrinessScore = edgeStrength
+				self.bestFrame = params[0]
+
 		if self.curChangeAmount < self.changeThreshold:
 			return None
 
-		if self.analyseBlurriness:
-
-			edgeStrength = np.mean(ndimage.sobel(frame, axis=0, mode='constant'))
-			edgeStrength += np.mean(ndimage.sobel(frame, axis=1, mode='constant'))
-			if edgeStrength < self.blurrinessThreshold*self.avgEdgeStrength:
-				self.avgEdgeStrength += edgeStrength
-				self.avgEdgeStrength /= 2
-				return None
-			
-			self.avgEdgeStrength += edgeStrength
-			self.avgEdgeStrength /= 2
-
+		self.bestBlurrinessScore = -1
 		self.curChangeAmount = 0
 		print "Frame accepted 42243"
 		return params[0]
